@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import { createBooking, getAllBookings } from "./database.js";
+import { pushBookingToSheet } from "./google-sheets.js";
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -45,7 +46,7 @@ app.get("/api/bookings", (_req, res) => {
   res.json({ bookings: getAllBookings() });
 });
 
-app.post("/api/bookings", (req, res) => {
+app.post("/api/bookings", async (req, res) => {
   const booking = normalizeBooking(req.body);
   const errors = validateBooking(booking);
 
@@ -55,6 +56,17 @@ app.post("/api/bookings", (req, res) => {
 
   try {
     const saved = createBooking(booking);
+
+    // Best-effort push to Google Sheets. Never throws, never fails the request —
+    // the booking is already safely in SQLite above.
+    const sheetResult = await pushBookingToSheet(saved);
+    if (!sheetResult.ok && sheetResult.reason !== "not_configured") {
+      console.warn(
+        "[server] Booking saved to SQLite but Sheets push failed:",
+        sheetResult
+      );
+    }
+
     res.status(201).json({ message: "Booking saved.", booking: saved });
   } catch (error) {
     console.error("Failed to save booking:", error);

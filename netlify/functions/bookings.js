@@ -1,5 +1,6 @@
 import { getStore } from "@netlify/blobs";
 import { jsonResponse, normalizeBooking, validateBooking } from "./lib/booking-utils.js";
+import { pushBookingToSheet } from "./lib/google-sheets.js";
 
 const STORE_NAME = "travel-bookings";
 
@@ -62,6 +63,16 @@ export default async (request) => {
 
   bookings.unshift(saved);
   await writeBookings(bookings);
+
+  // Best-effort push to Google Sheets. Never throws, never fails the request —
+  // the booking is already safely in Netlify Blobs above.
+  const sheetResult = await pushBookingToSheet(saved);
+  if (!sheetResult.ok && sheetResult.reason !== "not_configured") {
+    console.warn(
+      "[bookings] Booking saved to Blobs but Sheets push failed:",
+      sheetResult
+    );
+  }
 
   return jsonResponse(201, { message: "Booking saved.", booking: saved });
 };
