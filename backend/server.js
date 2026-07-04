@@ -1,3 +1,4 @@
+import "dotenv/config";
 import cors from "cors";
 import express from "express";
 import { createBooking, getAllBookings } from "./database.js";
@@ -9,9 +10,18 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+app.get("/", (_req, res) => {
+  res.json({
+    message: "Horizon Travel API is running.",
+    frontend: "Open http://localhost:3000 for the website.",
+    health: "/api/health",
+  });
+});
+
 function validateBooking(body) {
   const errors = [];
 
+  if (body["bot-field"]) errors.push("Invalid booking request.");
   if (!body.name?.trim()) errors.push("Name is required.");
   if (!body.email?.trim()) errors.push("Email is required.");
   if (!body.phone?.trim()) errors.push("Phone is required.");
@@ -39,7 +49,15 @@ function normalizeBooking(body) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", database: "sqlite" });
+  res.json({
+    status: "ok",
+    database: "sqlite",
+    sheetsConfigured: Boolean(
+      process.env.GOOGLE_SHEET_ID &&
+        (process.env.GOOGLE_CREDENTIALS_BASE64 ||
+          process.env.GOOGLE_SERVICE_ACCOUNT_JSON)
+    ),
+  });
 });
 
 app.get("/api/bookings", (_req, res) => {
@@ -74,6 +92,17 @@ app.post("/api/bookings", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Horizon Travel API running at http://localhost:${PORT}`);
+});
+
+server.on("error", (error) => {
+  if (error.code === "EADDRINUSE") {
+    console.error(
+      `Port ${PORT} is already in use. Run: lsof -ti tcp:${PORT} | xargs kill -9`
+    );
+    process.exit(1);
+  }
+
+  throw error;
 });

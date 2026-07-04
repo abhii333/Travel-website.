@@ -1,6 +1,7 @@
 function validateBooking(body) {
   const errors = [];
 
+  if (body["bot-field"]) errors.push("Invalid booking request.");
   if (!body.name?.trim()) errors.push("Name is required.");
   if (!body.email?.trim()) errors.push("Email is required.");
   if (!body.phone?.trim()) errors.push("Phone is required.");

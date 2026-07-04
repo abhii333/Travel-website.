@@ -10,6 +10,7 @@
 //   5. Cleans up the test booking from SQLite
 //   6. Reports pass/fail and exits non-zero on failure
 
+import { existsSync, readFileSync } from "node:fs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
@@ -18,6 +19,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "..");
 const PORT = 3002;
 const BASE = `http://localhost:${PORT}`;
+const ENV_PATH = resolve(ROOT, "backend/.env");
 
 const COLORS = {
   reset: "\x1b[0m",
@@ -50,11 +52,36 @@ const fakeBooking = {
   consent: "Customer agreed to be contacted",
 };
 
+function parseEnvFile(path) {
+  if (!existsSync(path)) return {};
+
+  const entries = {};
+  for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const equalsIndex = trimmed.indexOf("=");
+    if (equalsIndex === -1) continue;
+
+    const key = trimmed.slice(0, equalsIndex).trim();
+    let value = trimmed.slice(equalsIndex + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    entries[key] = value;
+  }
+  return entries;
+}
+
 function spawnServer() {
   console.log(c("dim", `  Spawning backend on port ${PORT}...`));
+  const envFromFile = parseEnvFile(ENV_PATH);
   const server = spawn("node", ["server.js"], {
     cwd: resolve(ROOT, "backend"),
-    env: { ...process.env, PORT: String(PORT) },
+    env: { ...process.env, ...envFromFile, PORT: String(PORT) },
     stdio: ["ignore", "pipe", "pipe"],
   });
 
@@ -86,15 +113,16 @@ function spawnServer() {
   });
 
   // Safety timeout
-  const killTimer = setTimeout(() => {
-    if (!booted) {
-      server.kill("SIGTERM");
-      ready.reject(new Error("Server did not become ready within 10s"));
-    }
-  }, 10_000);
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => {
+      if (!booted) {
+        server.kill("SIGTERM");
+        reject(new Error("Server did not become ready within 10s"));
+      }
+    }, 10_000);
+  });
 
-  ready.finally(() => clearTimeout(killTimer));
-  return ready;
+  return Promise.race([ready, timeout]);
 }
 
 async function waitForHealth() {
@@ -177,8 +205,12 @@ async function main() {
 
     // Step 5: Sheets (if configured)
     console.log(c("cyan", "\nStep 5:") + " " + c("bold", "Google Sheets push"));
-    if (!process.env.GOOGLE_SHEET_ID || !process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-      warn("GOOGLE_SHEET_ID / GOOGLE_SERVICE_ACCOUNT_JSON not set — Sheets push skipped.");
+    const envForSmoke = { ...process.env, ...parseEnvFile(ENV_PATH) };
+    if (
+      !envForSmoke.GOOGLE_SHEET_ID ||
+      !(envForSmoke.GOOGLE_CREDENTIALS_BASE64 || envForSmoke.GOOGLE_SERVICE_ACCOUNT_JSON)
+    ) {
+      warn("GOOGLE_SHEET_ID / GOOGLE_CREDENTIALS_BASE64 not set — Sheets push skipped.");
       warn("Run `npm run setup` to configure. Booking flow itself works without Sheets.");
     } else {
       warn("Sheets push happens during POST /api/bookings. Scroll up in [server] output for:");

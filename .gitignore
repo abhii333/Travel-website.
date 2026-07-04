@@ -12,6 +12,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+backend/.env
+netlify-env.txt
 backend/data/*.db
 backend/node_modules
 

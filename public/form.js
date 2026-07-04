@@ -10,7 +10,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const submitButton = form.querySelector('button[type="submit"]');
     const originalLabel = submitButton.textContent;
+
+    if (!form.reportValidity()) {
+      return;
+    }
+
+    if (form.querySelector('[name="bot-field"]')?.value) {
+      return;
+    }
+
     submitButton.disabled = true;
+    form.setAttribute("aria-busy", "true");
     submitButton.textContent = "Saving...";
 
     const formData = new FormData(form);
@@ -19,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!form.querySelector("#consent").checked) {
       alert("Please agree to be contacted before submitting.");
       submitButton.disabled = false;
+      form.removeAttribute("aria-busy");
       submitButton.textContent = originalLabel;
       return;
     }
@@ -42,6 +53,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       alert(error.message || "Something went wrong. Please try again.");
       submitButton.disabled = false;
+      form.removeAttribute("aria-busy");
       submitButton.textContent = originalLabel;
     }
   });

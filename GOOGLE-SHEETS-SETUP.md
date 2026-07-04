@@ -112,10 +112,11 @@ You'll get a single long string. Copy it.
 
 ## Step 5a — Local development
 
-In the repo root:
+In the app folder:
 
 ```bash
-cp .env.example backend/.env   # if backend/.env doesn't exist yet
+cd "/Users/abhisheksawlani/Downloads/travel website/app"
+cp backend/.env.example backend/.env   # if backend/.env doesn't exist yet
 # OR just create backend/.env with the contents below
 ```
 
@@ -124,7 +125,7 @@ Fill `backend/.env`:
 ```ini
 GOOGLE_SHEET_ID=1aBcD...        # from Step 1
 GOOGLE_SHEET_TAB_NAME=Bookings  # or your tab name
-GOOGLE_SERVICE_ACCOUNT_JSON=eyJ0eXAiOiJKV1Q...  # base64 from Step 4
+GOOGLE_CREDENTIALS_BASE64=eyJ0eXAiOiJKV1Q...  # base64 from Step 4
 ```
 
 Then restart your dev server:
@@ -143,17 +144,18 @@ your Google Sheet within ~1 second.
 ## Step 5b — Netlify production
 
 1. Open the Netlify dashboard → your site → **Site settings** → **Environment variables**.
+   If your dashboard uses the newer labels, this is **Project configuration** → **Environment variables**.
 2. Add the three variables (paste the same values as local):
 
    | Key                            | Value                                          |
    |--------------------------------|------------------------------------------------|
    | `GOOGLE_SHEET_ID`              | The ID from Step 1                             |
    | `GOOGLE_SHEET_TAB_NAME`        | `Bookings` (or your tab name)                  |
-   | `GOOGLE_SERVICE_ACCOUNT_JSON`  | The base64 string from Step 4                  |
+   | `GOOGLE_CREDENTIALS_BASE64`    | The base64 string from Step 4                  |
 
 3. **Important:** scope the env vars to **All** scopes (or at minimum
    "Functions" + "Post processing" + "Build").
-4. Trigger a redeploy (Deploys → **Trigger deploy** → **Deploy site**).
+4. Trigger a redeploy (Deploys → **Trigger deploy** → **Clear cache and deploy site**).
 5. Submit a real booking — row appears in the Sheet.
 
 ---

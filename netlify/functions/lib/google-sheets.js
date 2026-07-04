@@ -18,7 +18,9 @@ import crypto from "node:crypto";
 
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 const TAB_NAME = process.env.GOOGLE_SHEET_TAB_NAME || "Bookings";
-const CREDENTIALS_B64 = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
+const CREDENTIALS_B64 =
+  process.env.GOOGLE_CREDENTIALS_BASE64 ||
+  process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
 const SCOPES = ["https://www.googleapis.com/auth/spreadsheets"];
 
 // Column order MUST stay stable — we read/write the sheet by position.
@@ -68,7 +70,7 @@ function loadCredentials() {
     return cachedCreds;
   } catch (error) {
     console.error(
-      "[google-sheets] GOOGLE_SERVICE_ACCOUNT_JSON is not valid base64 JSON:",
+      "[google-sheets] GOOGLE_CREDENTIALS_BASE64 is not valid base64 JSON:",
       error.message
     );
     return null;

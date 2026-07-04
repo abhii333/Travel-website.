@@ -31,11 +31,6 @@ export default async (request) => {
     });
   }
 
-  if (request.method === "GET") {
-    const bookings = await readBookings();
-    return jsonResponse(200, { bookings });
-  }
-
   if (request.method !== "POST") {
     return jsonResponse(405, { error: "Method not allowed." });
   }

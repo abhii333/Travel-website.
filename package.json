@@ -7,6 +7,7 @@
     "dev": "vite --host 0.0.0.0",
     "dev:backend": "npm --prefix backend run dev",
     "dev:all": "npm run dev:backend & npm run dev",
+    "kill:backend-port": "lsof -ti tcp:3001 | xargs kill -9 || true",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
     "start:backend": "npm --prefix backend start",
